@@ -255,3 +255,257 @@ customer_type,
 ROUND(AVG(adr),2) avg_adr
 FROM hotel_bookings
 GROUP BY customer_type
+```
+--INTERMEDIATE BUSINESS INSIGHT QUESTIONS
+--which market segment produces the highest number of cancellaton?
+SELECT
+market_segment,
+COUNT(*) total_cancellations
+FROM hotel_bookings
+WHERE is_canceled = 1
+GROUP BY market_segment
+ORDER BY total_cancellations DESC
+--which country has the highest cancellation rate?
+SELECT
+country,
+COUNT(*) total_cancellations
+FROM hotel_bookings
+WHERE is_canceled = 1
+GROUP BY country
+ORDER BY total_cancellations DESC
+--which deposit type is associated with the lowest cancellation rate?
+SELECT
+deposit_type,
+COUNT(*) total_bookings,
+ SUM(is_canceled) AS total_cancellations,
+    ROUND(100.0 * SUM(is_canceled) / COUNT(*),2) AS cancellation_rate
+FROM hotel_bookings
+GROUP BY deposit_type
+ORDER BY cancellation_rate
+--how do special request relate to cancellation?
+SELECT
+total_of_special_requests,
+COUNT(*) total_bookings,
+SUM(is_canceled) total_cancelation,
+ROUND(100.0 * SUM(is_canceled) / COUNT(*),2)  cancellation_rate
+FROM hotel_bookings
+GROUP BY total_of_special_requests
+
+-- which distribution channel brings the most repeated guests?
+SELECT
+distribution_channel,
+COUNT(is_repeated_guest) repeated_guest
+FROM hotel_bookings
+WHERE is_repeated_guest =1
+GROUP BY distribution_channel
+
+      --ADVANCED SQL ANALYSIS
+	 --1.Window function analysis
+--Rank the top 10 countries by total bookings
+SELECT TOP 10
+country,
+COUNT(*) total_bookings,
+RANK() OVER(ORDER BY COUNT(*) DESC) booking_rank
+FROM hotel_bookings
+GROUP BY country
+ORDER BY booking_rank
+--Rank months by average ADR within each year
+SELECT
+arrival_date_month,
+ROUND(AVG(adr),2) avg_adr,
+RANK()OVER (ORDER BY AVG(adr))Rank_avg_adr
+FROM hotel_bookings
+GROUP BY arrival_date_month
+--identify the top 1 highest ADR bookings per hotel type
+SELECT TOP 1
+hotel,
+adr,
+ROW_NUMBER()OVER(PARTITION BY hotel ORDER BY adr DESC)hotel_rank
+FROM hotel_bookings
+
+--2.customer behavior analysis
+--identify guests who did multiple bookings but never canceled.
+WITH guest_bookings AS(
+SELECT
+country,
+COUNT(*)total_bookings,
+SUM(is_canceled) cancellations
+FROM hotel_bookings
+GROUP BY country)
+SELECT*
+FROM guest_bookings
+WHERE total_bookings > 1 AND cancellations =0 
+ORDER BY total_bookings DESC
+--Find repeated guests whose average stay duration increased over time.
+WITH stay_data AS(
+SELECT
+country,
+arrival_date_year,
+AVG(stays_in_weekend_nights + stays_in_week_nights) AS avg_stay_duration
+FROM hotel_bookings
+WHERE is_repeated_guest = 1
+GROUP BY country,arrival_date_year
+),
+stay_trend AS(
+SELECT
+country,
+arrival_date_year,
+avg_stay_duration,
+LAG(avg_stay_duration) OVER (PARTITION BY country ORDER BY arrival_date_year) AS previous_avg_stay
+FROM stay_data
+)
+SELECT*
+FROM stay_trend
+WHERE avg_stay_duration > previous_avg_stay
+
+--REVENUE TREND ANALYSIS
+--calculate the month-over-month ADR growth for each hotel
+WITH monthly_adr AS(
+SELECT
+hotel,
+arrival_date_month,
+AVG(adr) avg_monthly_adr
+FROM hotel_bookings
+WHERE is_canceled = 0
+GROUP BY hotel,arrival_date_month
+),
+adr_growth AS (
+SELECT
+hotel,
+arrival_date_month,
+avg_monthly_adr,
+LAG(avg_monthly_adr) OVER(PARTITION BY hotel ORDER BY arrival_date_month) AS previous_month
+FROM monthly_adr)
+SELECT
+hotel,arrival_date_month,avg_monthly_adr,previous_month,
+ROUND(((avg_monthly_adr-previous_month)/previous_month)*100,2) MOM_growth_percent
+FROM adr_growth
+WHERE previous_month IS NOT NULL
+ORDER BY hotel,arrival_date_month
+--identify months where ADR uncreased compared to previous month.
+WITH monthly_adr AS(
+SELECT
+hotel,
+arrival_date_month,
+AVG(adr) avg_monthly_adr
+FROM hotel_bookings
+WHERE is_canceled = 0
+GROUP BY hotel,arrival_date_month
+),
+adr_growth AS (
+SELECT
+hotel,
+arrival_date_month,
+avg_monthly_adr,
+LAG(avg_monthly_adr) OVER(PARTITION BY hotel ORDER BY arrival_date_month) AS previous_month
+FROM monthly_adr)
+SELECT
+hotel,arrival_date_month,avg_monthly_adr,previous_month,
+ROUND(((avg_monthly_adr-previous_month)/previous_month)*100,2) MOM_growth_percent
+FROM adr_growth
+WHERE avg_monthly_adr > previous_month
+ ORDER BY hotel,arrival_date_month
+
+ 		--cancellation RISK Modeling
+
+--Find bookings charcteristic that have the highest cancellation probability.
+SELECT 
+    market_segment,
+    deposit_type,
+    customer_type,
+    COUNT(*) AS total_bookings,
+    SUM(is_canceled) AS total_cancellations,
+    ROUND(100.0 * SUM(is_canceled) / COUNT(*),2) AS cancellation_probability
+FROM hotel_bookings
+GROUP BY market_segment, deposit_type, customer_type
+HAVING COUNT(*) > 50
+ORDER BY cancellation_probability DESC;
+--identify the top 5 combinaton of market segment and deposit type with the highest cancellations
+SELECT TOP 5
+    market_segment,
+    deposit_type,
+    COUNT(*) AS total_cancellations
+FROM hotel_bookings
+WHERE is_canceled = 1
+GROUP BY market_segment, deposit_type
+ORDER BY total_cancellations DESC
+
+		--5.operaton efficiency analysis
+--calculate the average waiting list dsys by hotel and customer type.
+SELECT
+hotel,
+customer_type,
+AVG(days_in_waiting_list)avg_waiting_days
+FROM hotel_bookings
+WHERE days_in_waiting_list > 0
+GROUP BY hotel,customer_type
+-- identify bookings where assigned room type differ from reserved room type
+SELECT 
+    hotel,
+    arrival_date_year,
+    arrival_date_month,
+    reserved_room_type,
+    assigned_room_type,
+    ROUND(adr,2) adr
+FROM hotel_bookings
+WHERE reserved_room_type <> assigned_room_type
+
+ --ADVANCED BUSINESS QUESTION(PORTFOLIO-LEVEL)
+
+--Identify the booking factors that most influence cancellations(lead time,deposite type, market segment)
+SELECT
+deposit_type,
+lead_time,
+market_segment,
+SUM(is_canceled) total_cancelation
+FROM hotel_bookings
+WHERE is_canceled = 1
+GROUP BY deposit_type,lead_time,market_segment
+ORDER BY total_cancelation DESC;
+--Determione which customer segments generate the highest revenue with the lowest cancellation risks
+SELECT
+customer_type,
+SUM(adr*(stays_in_weekend_nights + stays_in_week_nights))total_revenue,
+SUM(is_canceled) total_cancelation
+FROM hotel_bookings
+WHERE is_canceled = 0
+GROUP BY customer_type
+ORDER BY total_revenue DESC
+
+--Analyze seasonal demand pattern and identity the best months for hotel pricing optimization.
+SELECT 
+    arrival_date_month,
+    COUNT(*) AS total_bookings,
+    ROUND(AVG(adr),2) AS avg_adr
+FROM hotel_bookings
+GROUP BY arrival_date_month
+ORDER BY 
+CASE arrival_date_month
+    WHEN 'January' THEN 1
+    WHEN 'February' THEN 2
+    WHEN 'March' THEN 3
+    WHEN 'April' THEN 4
+    WHEN 'May' THEN 5
+    WHEN 'June' THEN 6
+    WHEN 'July' THEN 7
+    WHEN 'August' THEN 8
+    WHEN 'September' THEN 9
+    WHEN 'October' THEN 10
+    WHEN 'November' THEN 11
+    WHEN 'December' THEN 12
+END;
+
+--identify high-value customers define as those with high ADR ,long stay and no cancellations
+SELECT 
+    customer_type,
+    COUNT(*) AS high_value_bookings,
+    ROUND(AVG(adr),2) AS avg_adr,
+    AVG(stays_in_weekend_nights + stays_in_week_nights) AS avg_stay_length
+FROM hotel_bookings
+WHERE 
+    is_canceled = 0
+    AND adr > (SELECT AVG(adr) FROM hotel_bookings)
+    AND (stays_in_weekend_nights + stays_in_week_nights) >= 5
+GROUP BY customer_type
+ORDER BY high_value_bookings DESC
+
