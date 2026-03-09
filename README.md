@@ -509,3 +509,75 @@ WHERE
 GROUP BY customer_type
 ORDER BY high_value_bookings DESC
 
+Key Insights from the Analysis
+
+Several interesting insights were discovered during the analysis.
+
+High Cancellation Segments
+
+Certain market segments showed significantly higher cancellation rates.
+
+Understanding these segments helps hotels implement better booking policies.
+
+Seasonal Booking Trends
+
+Bookings peak during specific months, indicating strong seasonal demand patterns.
+
+Hotels can leverage this information to adjust pricing strategies.
+
+Revenue Contribution by Distribution Channels
+
+Online travel agencies contribute a significant portion of total bookings.
+
+Hotels may consider optimizing partnerships with these platforms.
+
+Customer Loyalty Patterns
+
+Repeat guests often show longer stay durations and lower cancellation rates.
+
+These customers represent a valuable segment for targeted marketing strategies.
+
+Business Recommendations
+
+Based on the findings from the analysis, several recommendations can be made:
+
+Implement Dynamic Pricing
+
+Hotels should increase pricing during high-demand months to maximize revenue.
+
+Encourage Non-Refundable Deposits
+
+Non-refundable deposits can reduce cancellations and improve booking reliability.
+
+Reward Loyal Customers
+
+Offering discounts or loyalty benefits can encourage repeat bookings.
+
+Target High-Value Customer Segments
+
+Marketing efforts should focus on customers who consistently generate higher revenue.
+
+Future Improvements
+
+Although this project provides valuable insights, further improvements could be made.
+
+Possible future enhancements include:
+
+Creating interactive dashboards using Power BI or Tableau
+
+Applying machine learning models to predict cancellations
+
+Conducting deeper revenue optimization analysis
+
+Integrating real-time booking data
+
+These improvements would provide even more powerful decision-making capabilities.
+
+Conclusion
+
+This project demonstrates how SQL can be used to analyze hospitality data and uncover meaningful business insights.
+
+By performing exploratory data analysis and advanced SQL queries, the project provides a deeper understanding of booking patterns, customer behavior, and pricing strategies.
+
+The insights gained from this analysis can help hotels optimize operations, improve customer satisfaction, and maximize revenue.
+
